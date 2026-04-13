@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
+using System.Text;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace TextEditor
@@ -31,7 +32,7 @@ namespace TextEditor
         {
             int larguraTotal = 70;
             Console.WriteLine(new String('-', larguraTotal));
-            Console.WriteLine(new String('*', larguraTotal));
+            Console.WriteLine(new String('-', larguraTotal));
 
         }
         static void Linha()
@@ -83,28 +84,41 @@ namespace TextEditor
 
             Rodape();
             Carregando();
-            if(File.Exists(path)) {
+            if (File.Exists(path))
+            {
                 Console.WriteLine("");
                 Linha();
                 Console.WriteLine("Texto original");
                 Linha();
-            string text = File.ReadAllText(path);
+                string text = File.ReadAllText(path);
 
                 using (var file = new StreamReader(path))
-            {
-                
-                text = file.ReadToEnd();
-                Console.WriteLine(text);
-            }
-                
+                {
+
+                    text = file.ReadToEnd();
+                    Console.WriteLine(text);
+                }
+
                 ValidarProximoPasso(path, text);
 
-        }else{
-            Console.WriteLine("Arquivo não encontrado!!! Por favor, tente novamente.");
-            Rodape();
-            Thread.Sleep(2000);
-            Abrir();
-        }
+            }
+            else
+            {
+                Console.WriteLine("Arquivo não encontrado!!! Por favor, tente novamente.");
+                Thread.Sleep(2000);
+                Console.WriteLine("Deseja tentar abrir outro arquivo? [S/N]");
+                var opc = Console.ReadLine().ToUpper();
+                if (opc == "S")
+                {
+                    Abrir();
+                }
+                else
+                {
+                    Console.WriteLine("Retornando ao menu principal...");
+                    Thread.Sleep(2000);
+                    Menu();
+                }
+            }
         }
 
         static void ValidarProximoPasso(string path, string text)
@@ -137,23 +151,27 @@ namespace TextEditor
             LinhaDecorada();
             Console.WriteLine("  Digite seu texto abaixo:  | [OK] - Encerrar ");
             LinhaDecorada();
-            string text = "";
-            string linha;
-            do
+            var linha = "";
+            StringBuilder text = new StringBuilder(); // Variável para armazenar o texto digitado
+
+            while (true)
             {
+
                 linha = Console.ReadLine();
-
-                if (linha.ToUpper() != "OK")
+                if (linha.ToUpper() == "OK") // Verifica se o usuário digitou "OK" para encerrar a entrada de texto
                 {
-                    text += linha + Environment.NewLine;
+                    break; // Encerra o loop
                 }
-            } while (linha.ToUpper() != "OK");
-
+                text.AppendLine(linha); // Adiciona texto e quebra a linha automaticamente.
+            }
+            string conteudoFinal = text.ToString(); // Converte o StringBuilder para string
             Linha();
-            Console.WriteLine("  Texto concluido  ");
-            Console.Write(text);
+            Console.WriteLine("  Texto concluido:  ");
+            Linha();
+            Console.Write(conteudoFinal);
             Rodape();
             Thread.Sleep(2000);
+            var path = (string)null;
             Console.WriteLine("Deseja salvar seu arquivo de texto? ");
             Console.WriteLine("[S] - Sim | [N] - Não ");
 
@@ -163,7 +181,7 @@ namespace TextEditor
 
             if (opc == 'S')
             {
-                Salvar(text);
+                Salvar(path,conteudoFinal);
             }
             else
             {
@@ -171,34 +189,33 @@ namespace TextEditor
             }
 
         }
-        static void Editar(string arquivo, string conteudo)
+        static void Editar(string arquivo, string conteudoFinal)
         {
             Console.Clear();
             Cabecalho(arquivo);
-            Console.WriteLine(conteudo);
+            Console.WriteLine(conteudoFinal);
             Thread.Sleep(2000);
             Linha();
             Console.WriteLine("Continue digitando o seu texto: ");
-            Carregando();
-            string newText = ""; // Variável para armazenar o novo texto editado junto com o antigo
+            StringBuilder newText = new StringBuilder(conteudoFinal); // Variável para armazenar o texto atualizado
             string newLines;
-
-            do
+            while (true)
             {
-                newLines = Console.ReadLine();  // Lê a nova linha de texto
 
-                if (newLines.ToUpper() != "OK") // Verifica se a linha digitada é "OK" (ignora maiúsculas/minúsculas)
+                newLines = Console.ReadLine();
+                if (newLines.ToUpper() == "OK") // Verifica se o usuário digitou "OK" para encerrar a entrada de texto
                 {
-                    conteudo += newLines + Environment.NewLine; // Adiciona a nova linha ao texto existente, seguido de uma quebra de linha
+                    break; // Encerra o loop
                 }
-            } while (newLines.ToUpper() != "OK");
+                newText.AppendLine(newLines); // Adiciona texto e quebra a linha automaticamente.
+            }
+            string conteudoAtualizado = newText.ToString(); // Converte o StringBuilder para string
 
-            newText = conteudo; // Atualiza o texto com as novas linhas adicionadas
-
+            Linha();
             Console.WriteLine("  Texto atualizado  ");
-            Rodape();
+            Linha();
             Thread.Sleep(2000);
-            Console.WriteLine(newText);
+            Console.WriteLine(conteudoAtualizado);
             Thread.Sleep(2000);
             Console.WriteLine("Deseja salvar as alterações do seu arquivo de texto? ");
             Console.WriteLine("[S] - Sim | [N] - Não ");
@@ -206,7 +223,7 @@ namespace TextEditor
 
             if (opcSave == "S")
             {
-                Salvar(newText);
+                Salvar(arquivo,conteudoAtualizado);
 
             }
             else
@@ -215,15 +232,13 @@ namespace TextEditor
             }
 
         }
-        static void Salvar(string text)
+        static void Salvar(string path, string text)
         {
             
             Console.Clear();
             Cabecalho("SAVE");
-            Console.WriteLine(" Digite o caminho que será salvo o documento ");
-            var path = Console.ReadLine();
-            Carregando();
-            if (File.Exists(path))
+
+            if (path != null)
             {
                 using (var file = new StreamWriter(path))
                 {
@@ -231,16 +246,20 @@ namespace TextEditor
                 }
 
                 Console.WriteLine($"Arquivo {path} foi atualizado com sucesso");
+                Thread.Sleep(5000);
             }
             else
             {
+                Console.WriteLine(" Digite o caminho que será salvo o documento ");
+                path = Console.ReadLine();
+                Carregando();
                 using (var file = new StreamWriter(path))
                 {
                     file.Write(text);
                 }
 
                 Console.WriteLine($"Arquivo {path} foi criado com sucesso");
-                
+                Thread.Sleep(5000);
             }
 
             Rodape();
@@ -302,5 +321,5 @@ namespace TextEditor
             System.Environment.Exit(0);
         }
 
-    }
+        }
 }
